@@ -1,6 +1,4 @@
-langchain==0.1.9
-langchain-google-genai==0.0.11
+streamlit==1.31.0
 google-generativeai==0.3.2
 python-dotenv==1.0.0
 sendgrid==6.10.0
-streamlit==1.31.0 
