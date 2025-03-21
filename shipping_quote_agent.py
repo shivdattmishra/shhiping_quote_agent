@@ -149,8 +149,13 @@ class ShippingQuoteAssistant:
             api_key = os.getenv('SENDGRID_API_KEY')
             from_email = os.getenv('SENDGRID_FROM_EMAIL')
             
-            if not api_key or not from_email:
-                return "Error: SendGrid configuration missing"
+            # Validate configuration
+            if not api_key:
+                return "Error: SendGrid API key is missing. Please check your .env file"
+            if not from_email:
+                return "Error: Sender email is missing. Please check your .env file"
+            if not recipient_email:
+                return "Error: Recipient email is required"
 
             # Create message with form data
             email_content = "Shipping Quote Request Details:\n\n"
@@ -159,6 +164,11 @@ class ShippingQuoteAssistant:
                 for field, value in fields.items():
                     if value:  # Only include non-empty fields
                         email_content += f"{field.replace('_', ' ').title()}: {value}\n"
+            
+            # Print debug info (remove in production)
+            print(f"Sending email to: {recipient_email}")
+            print(f"From email: {from_email}")
+            print(f"API Key present: {'Yes' if api_key else 'No'}")
             
             message = Mail(
                 from_email=from_email,
@@ -177,26 +187,39 @@ class ShippingQuoteAssistant:
                 return f"❌ Error sending email. Status code: {response.status_code}"
             
         except Exception as e:
+            print(f"Error details: {str(e)}")  # Debug info
             return f"❌ Error sending email: {str(e)}"
 
     def process_message(self, user_message: str) -> str:
         """Process user message and return response"""
         try:
-            # Check if the message is about sending email
-            if "send email" in user_message.lower() or "send the form" in user_message.lower():
+            # Check for various email sending phrases
+            email_triggers = [
+                "send email to",
+                "send the form to",
+                "send quote to",
+                "send to",
+                "email to",
+                "please send",
+                "send email",
+                "send form"
+            ]
+            
+            if any(trigger in user_message.lower() for trigger in email_triggers):
                 # Try to extract email from the current message
                 import re
-                email_match = re.search(r'send (?:email|form) to ([^\s]+@[^\s]+)', user_message.lower())
+                # Look for email pattern
+                email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', user_message)
                 
                 if email_match:
-                    # Use email from current message
-                    recipient_email = email_match.group(1)
+                    # Use email found in message
+                    recipient_email = email_match.group(0)
                 else:
                     # Use email from form data
                     recipient_email = self.form_data["shipper_consignee"]["email"]
                     
                 if not recipient_email:
-                    return "I don't have an email address. Please provide one like 'send email to example@email.com'"
+                    return "I don't have an email address. Please provide an email address to send the quote to."
                 
                 return self.send_email(recipient_email)
             
@@ -220,7 +243,7 @@ def main():
     if "messages" not in st.session_state:
         st.session_state.messages = []
     
-    # Display environment status
+    # Display environment status in sidebar (keeping only the essential info)
     with st.sidebar:
         st.subheader("Environment Status")
         sendgrid_key = os.getenv("SENDGRID_API_KEY")
@@ -228,9 +251,7 @@ def main():
         st.write(f"SendGrid API Key: {'Configured' if sendgrid_key else 'Not Configured'}")
         st.write(f"Sender Email: {'Configured' if sender_email else 'Not Configured'}")
         
-        # Display form data
-        st.subheader("Form Data")
-        st.json(st.session_state.assistant.form_data)
+        # Removed the form data display from sidebar
 
     # Display chat messages
     for message in st.session_state.messages:
