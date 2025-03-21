@@ -7,7 +7,6 @@ This is a multi-agent system that helps collect shipping quote requests through 
 - Conversational interface for collecting shipping quote details
 - Structured form data collection
 - Email notification system
-- Multi-agent system using Langchain
 - Powered by Google's Gemini AI
 
 ## Prerequisites
